@@ -11,6 +11,7 @@ export default class App extends Component {
       return (
         <View style={{alignItems: 'center'}}>
         <Test picture='https://upload.wikimedia.org/wikipedia/commons/d/de/Bananavarieties.jpg'/>
+        <Test picture='https://www.b2run.de/run/de/de/hannover/bilder/2017/b2run-hannover-2017-bild-004.jpg'/>
         </View>
       );
     }
