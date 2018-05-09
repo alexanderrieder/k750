@@ -9,17 +9,17 @@ export default class App extends Component {
       };
     
       return (
-        <View>
-        <test picture='https://upload.wikimedia.org/wikipedia/commons/d/de/Bananavarieties.jpg'/>
+        <View style={{alignItems: 'center'}}>
+        <Test picture='https://upload.wikimedia.org/wikipedia/commons/d/de/Bananavarieties.jpg'/>
         </View>
       );
     }
   }
 
-  class test extends Component {
+  class Test extends Component {
     render() {
       return (
-        <Image source={this.props.picture} style={{width: 193, height: 110}}/>
+        <Image source={{uri: this.props.picture}} style={{width: 193, height: 110}}/>
       )
     }
   }
