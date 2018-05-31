@@ -1,6 +1,8 @@
 import React,  { Component }  from 'react';
 import { StyleSheet, Text, View, AppRegistry, Image, Button, FlatList, TouchableOpacity, ScrollView } from 'react-native';
 import { createStackNavigator } from 'react-navigation';
+import Expo from 'expo';
+import { MapView, Permissions, BarCodeScanner } from 'expo';
 
 class LogoTitle extends React.Component {
   render() {
@@ -29,16 +31,17 @@ class HomeScreen extends React.Component {
     return (
       
       <View style={styles.container}>
-       <Image
+       {<Image
           style={{width: '100%', height: '50%'}}
           source={require('./karsau.png')}
-        />
+        />}
+        
         <FlatList
           data={[
             {key: 'Über Karsau', togo: 'Static', content: 'History'},
             {key: 'Kontakt', togo: 'Static', content: 'Contact'},
-            {key: 'James'},
-            {key: 'Joel'},
+            {key: 'Kartenansicht', togo: 'Static', content: 'Map'},
+            {key: 'bcScanner', togo: 'Static', content: 'bc'},
             {key: 'John'},
             {key: 'Jillian'},
             {key: 'Jimmy'},
@@ -52,6 +55,39 @@ class HomeScreen extends React.Component {
         />
       </View>
     );
+  }
+}
+
+class BCarcodescanner extends React.Component{
+  state = {
+    hasCameraPermission: null,
+  }
+
+  async componentWillMount() {
+    const { status } = await Permissions.askAsync(Permissions.CAMERA);
+    this.setState({hasCameraPermission: status === 'granted'});
+    }
+
+  render() {
+    const { hasCameraPermission } = this.state;
+
+    if (hasCameraPermission === null) {
+      return <Text>Requesting for camera permission</Text>;
+    } else if (hasCameraPermission === false) {
+      return <Text>No access to camera</Text>;
+    } else {
+      return (
+        <View style={{ flex: 1 }}>
+          <BarCodeScanner
+            onBarCodeRead={this._handleBarCodeRead}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+      );
+    }
+  }
+  _handleBarCodeRead = ({ type, data }) => {
+    alert(`Bar code with type ${type} and data ${data} has been scanned!`);
   }
 }
 
@@ -106,7 +142,26 @@ class History extends React.Component{
   }
 }
 
+class MapScreen extends React.Component{
+  render(){
+    return(
+      <MapView
+        style={{ flex: 1 }}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
+        showsCompass={true}
 
+        initialRegion={{
+          latitude: 37.78825,
+          longitude: -122.4324,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }}
+      />
+    );
+  }
+}
+    
 class DetailsScreen extends React.Component {
   static navigationOptions = ({ navigation }) => {
     const { params } = navigation.state;
@@ -172,6 +227,14 @@ class StaticTextScreen extends React.Component {
       case 'Contact':
       return(
         <Contact/>
+      )
+      case 'Map':
+      return(
+        <MapScreen/>
+      )
+      case 'bc':
+      return(
+        <BCarcodescanner/>
       )
 
 
