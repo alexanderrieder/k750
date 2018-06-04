@@ -1,8 +1,11 @@
 import React,  { Component }  from 'react';
-import { StyleSheet, Text, View, AppRegistry, Image, Button, FlatList, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, AppRegistry, Image, Button, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, NetInfo } from 'react-native';
 import { createStackNavigator } from 'react-navigation';
 import Expo from 'expo';
-import { MapView, Permissions, BarCodeScanner } from 'expo';
+import { MapView, Permissions, BarCodeScanner, SQLite } from 'expo';
+
+
+const db = SQLite.openDatabase('db1234.db');
 
 class LogoTitle extends React.Component {
   render() {
@@ -42,8 +45,8 @@ class HomeScreen extends React.Component {
             {key: 'Kontakt', togo: 'Static', content: 'Contact'},
             {key: 'Kartenansicht', togo: 'Static', content: 'Map'},
             {key: 'bcScanner', togo: 'Static', content: 'bc'},
-            {key: 'John'},
-            {key: 'Jillian'},
+            {key: 'Server', togo: 'Static', content: 'Server'},
+            {key: 'SQL', togo: 'Static', content: 'SQL'},
             {key: 'Jimmy'},
             {key: 'Julie'},
           ]}
@@ -91,8 +94,14 @@ class BCarcodescanner extends React.Component{
   }
 }
 
+
+
 class Contact extends React.Component{
+  
+
+  
   render(){
+    
     return(
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center'}}>
         <Text style={styles.contacttext}>Ortsvorsteher</Text>
@@ -105,10 +114,102 @@ class Contact extends React.Component{
 <Text style={styles.contacttext}>webmaster@karsau-750.de</Text>
 <Text style={styles.contacttext}>Tel.: +49 7623 50991</Text>
 <Text style={styles.contacttext}>Mobil: +49 1520 17 96 007</Text>
+<Text>{}</Text>
 </View>
     );
   }
 }
+
+function getMoviesFromApiAsync() {
+  
+  
+  return fetch("https://api.re-host.eu/api/testapi/all?limit=100000", {
+    method: 'GET',
+    headers: {
+      'X-Api-Key': '05DA927B0DAFD5FF7FDC31EB2A20FBAF',
+      'Limit': '1000'
+    },
+   
+}).then((response) => response.json())
+  .then((responseJson) => {
+
+    return responseJson.data.testapi;
+    
+
+    
+
+  })
+  .catch((error) =>{
+    console.error(error);
+  })
+
+
+}
+
+class Server extends React.Component{
+  constructor(props){
+    super(props);
+    this.state ={ isLoading: true}
+  }
+  /* componentDidMount(){
+  return fetch("https://api.re-host.eu/api/testapi/all", {
+    method: 'GET',
+    headers: {
+      'X-Api-Key': '05DA927B0DAFD5FF7FDC31EB2A20FBAF'
+    },
+   
+}).then((response) => response.json())
+  .then((responseJson) => {
+
+    this.setState({
+      isLoading: false,
+      dataSource: getMoviesFromApiAsync(),
+      //dataSource: responseJson.data.testapi,
+    }, function(){
+
+    });
+
+  })
+  .catch((error) =>{
+    console.error(error);
+  }); */
+  componentDidMount(){
+    var a = getMoviesFromApiAsync()
+    return b = a.then((result) => {this.setState({
+        isLoading: false,
+        dataSource: result,
+        //dataSource: responseJson.data.testapi,
+      }, function(){
+  
+      })
+    });
+    }
+    
+
+
+
+
+render(){
+
+if(this.state.isLoading){
+  return(
+    <View style={{flex: 1, padding: 20}}>
+      <ActivityIndicator/>
+    </View>
+  )
+}
+
+
+return(
+  <View style={styles.container}>
+    <FlatList
+      data={this.state.dataSource}
+      renderItem={({item}) => <TouchableOpacity onPress={() => getMoviesFromApiAsync()}><Text style={styles.item}>{item.id}, {item.text1}</Text></TouchableOpacity>}
+      keyExtractor={(item, index) =>  index.toString()}
+    />
+  </View>
+);
+}}
 
 class History extends React.Component{
   render(){
@@ -141,6 +242,146 @@ class History extends React.Component{
     );
   }
 }
+
+
+
+function syncAPI() {
+  /* db.transaction(tx => {
+    tx.executeSql(
+      'drop table itemas;'
+    );
+  }, null, null); */
+  db.transaction(tx => {
+    tx.executeSql(
+      'create table if not exists itemas (id integer primary key not null, text1 text, number1 int);'
+    );
+  }, null, null);
+/*   db.transaction(tx => {
+    tx.executeSql(
+      'delete from itemas;'
+    );
+  }, null, null); */
+  /* var a = getMoviesFromApiAsync()
+    b = a.then((result) => {
+      result.map((item) => {( */
+        //Hier wird durch das JSON Obkjekt, welches von der API abgerufen wird iteriert.
+        //Dies geschieht um die Daten in die lokale SQLite Datenbank zu schreiben
+        //db.transaction(tx => {tx.executeSql('INSERT OR REPLACE into itemas (id, text1, number1) values (?, ?, ?)', [item.id, item.text1, item.number1])}, null, null)
+       
+       getItDone().then((result) => {
+        //here do what you want with the results
+        console.log('result')
+      }).catch(() => {console.log('Fehler')})
+      
+
+      // )
+      
+      // })
+      
+      // }
+    // )
+    
+    
+ 
+  };
+
+  function getItDone(){
+    return new Promise(function(resolve,reject) {
+
+      var what = true
+      var a = getMoviesFromApiAsync()
+      b = a.then((result) => {
+        result.map((item) => {(
+      db.transaction(tx => {tx.executeSql('INSERT OR REPLACE into itemas (id, text1, number1) values (?, ?, ?)', [item.id, item.text1, item.number1])}, getItDone(), null)
+            )
+      
+       })
+      
+       }
+     )
+  });
+  }
+
+
+
+class SqlTest extends React.Component{
+  state = {
+    items: null,
+  };
+
+  
+
+  componentDidMount(){
+    var a = syncAPI()
+    db.transaction(tx => {
+      tx.executeSql(
+        `select * from itemas`,
+        null,
+        (_, { rows: { _array } }) => this.setState({ items: _array })
+      );
+    })
+  
+  
+    //this.update();
+  }
+
+  update() {
+    syncAPI()
+    db.transaction(tx => {
+      tx.executeSql(
+        `select * from itemas`,
+        null,
+        (_, { rows: { _array } }) => this.setState({ items: _array })
+      );
+    });
+    console.log(this.state)
+  }
+  render(){
+    const { items } = this.state;
+    if (items === null || items.length === 0) {
+      return (
+        <View style={{ margin: 5 }}>
+      
+      <Button title='Test' onPress={() => this.update
+      }>sdf</Button>
+      </View>
+      )
+    
+     
+    }
+
+    return (
+     
+      <View style={styles.container}>
+    <FlatList
+      data={this.state.items}
+      renderItem={({item}) => (<TouchableOpacity onPress={() => this.update()}><Text style={styles.item}>{item.id}, {item.text1}</Text></TouchableOpacity>)}
+      keyExtractor={(item, index) =>  index.toString()}
+    />
+  
+      
+      {/* <Button title='Test' onPress={() => this.update}>sdf</Button>
+        {items.map(({ id, text1, number1 }) => (
+        <TouchableOpacity
+          key={id}
+          style={{
+            padding: 5,
+            borderColor: 'black',
+            borderWidth: 1,
+          }}>
+          <Text>{text1}</Text>
+        </TouchableOpacity>
+      ))} */}
+      </View>
+      
+    );
+  }
+
+  
+
+  }
+
+
 
 class MapScreen extends React.Component{
   render(){
@@ -236,6 +477,16 @@ class StaticTextScreen extends React.Component {
       return(
         <BCarcodescanner/>
       )
+      case 'Server':
+      return(
+        <Server/>
+      )
+
+      case 'SQL':
+      return(
+        <SqlTest/>
+      )
+
 
 
 
@@ -291,6 +542,13 @@ const styles = StyleSheet.create({
 })
 
 export default class App extends React.Component {
+  componentDidMount() {
+    /* db.transaction(tx => {
+      tx.executeSql(
+        'create table if not exists items (id integer primary key not null, number int, value text);'
+      );
+    }); */
+  }
   render() {
     return <RootStack />;
   }
