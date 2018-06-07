@@ -1,32 +1,94 @@
 import React,  { Component }  from 'react';
-import { StyleSheet, Text, View, AppRegistry, Image, Button, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, NetInfo } from 'react-native';
+import { StyleSheet, Text, View, AppRegistry, Image, Button, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, NetInfo, Platform } from 'react-native';
 import { createStackNavigator } from 'react-navigation';
 import Expo from 'expo';
-import { MapView, Permissions, BarCodeScanner, SQLite } from 'expo';
+import { MapView, Permissions, BarCodeScanner, SQLite, Location } from 'expo';
+
+
+
 
 
 const db = SQLite.openDatabase('db1234.db');
+var isOnline = true;
+
+
+
 
 class LogoTitle extends React.Component {
   render() {
     return (
+      <View style={{flex: 1}}>
       <Image
         source={require('./spiro.png')}
-        style={{ width: 30, height: 30 }}
+        style={{ width: 30, height: 30, flex: 1, resizeMode: 'contain', alignSelf: 'center' }}
       />
+      </View>
     );
   }
 }
+
+class GetLoc extends React.Component{
+  state = {
+    location: null,
+    errorMessage: null,
+  };
+
+  componentWillMount() {
+    if (Platform.OS === 'android' && !Constants.isDevice) {
+      this.setState({
+        errorMessage: 'Oops, this will not work on Sketch in an Android emulator. Try it on your device!',
+      });
+    } else {
+      this._getLocationAsync();
+    }
+  }
+
+  _getLocationAsync = async () => {
+    let { status } = await Permissions.askAsync(Permissions.LOCATION);
+    if (status !== 'granted') {
+      this.setState({
+        errorMessage: 'Permission to access location was denied',
+      });
+    }
+
+    //let location = await Location.getCurrentPositionAsync({});
+    Location.watchHeadingAsync((hea) => console.log(JSON.stringify(hea)))
+    Location.watchPositionAsync({},(lo) => {
+      console.log(JSON.stringify(lo))
+      this.setState({ lo })});
+    //this.setState({ location });
+  };
+
+  render() {
+    let text = 'Waiting..';
+    if (this.state.errorMessage) {
+      text = this.state.errorMessage;
+    } else if (this.state.lo) {
+      text = JSON.stringify(this.state.lo);
+    }
+
+    return (
+      <View style={styles.container}>
+        <Text style={styles.paragraph}>{text}</Text>
+      </View>
+    );
+  }
+}
+
 class HomeScreen extends React.Component {
   
   static navigationOptions = {
     
     headerTitle: <LogoTitle />,
+    //headerTitleStyle: {flex: 1},
+    headerLeft: (
+      <Text></Text>
+    ),
     headerRight: (
       <Button
         onPress={() => alert('This is a button!')}
         title="Info"
-        color="#fff"
+        color={Platform.OS === 'ios' ? "#fff" : "#f4511e"}
       />
     ),
   };
@@ -34,6 +96,7 @@ class HomeScreen extends React.Component {
     return (
       
       <View style={styles.container}>
+      
        {<Image
           style={{width: '100%', height: '50%'}}
           source={require('./karsau.png')}
@@ -47,8 +110,8 @@ class HomeScreen extends React.Component {
             {key: 'bcScanner', togo: 'Static', content: 'bc'},
             {key: 'Server', togo: 'Static', content: 'Server'},
             {key: 'SQL', togo: 'Static', content: 'SQL'},
-            {key: 'Jimmy'},
-            {key: 'Julie'},
+            {key: 'Alex', togo: 'Static', content: 'Loc'},
+            {key: 'EE'},
           ]}
           renderItem={({item}) => <TouchableOpacity onPress={() =>
             this.props.navigation.push(item.togo, {
@@ -121,8 +184,8 @@ class Contact extends React.Component{
 }
 
 function getMoviesFromApiAsync() {
-  
-  
+  if(isOnline){
+  try{
   return fetch("https://api.re-host.eu/api/testapi/all?limit=100000", {
     method: 'GET',
     headers: {
@@ -130,7 +193,11 @@ function getMoviesFromApiAsync() {
       'Limit': '1000'
     },
    
-}).then((response) => response.json())
+}).then((response) => {
+  if(response.status === 200)
+  return response.json()
+  alert('This is a button!')
+})
   .then((responseJson) => {
 
     return responseJson.data.testapi;
@@ -141,9 +208,15 @@ function getMoviesFromApiAsync() {
   })
   .catch((error) =>{
     console.error(error);
+    throw Error(response.statusText)
   })
-
-
+}catch(e){
+  alert('This is a button!')
+  console.log(e)
+}
+  }else{
+    return null
+  }
 }
 
 class Server extends React.Component{
@@ -245,62 +318,46 @@ class History extends React.Component{
 
 
 
-function syncAPI() {
+async function syncAPI() {
   /* db.transaction(tx => {
     tx.executeSql(
       'drop table itemas;'
     );
   }, null, null); */
-  db.transaction(tx => {
+  await db.transaction(tx => {
     tx.executeSql(
       'create table if not exists itemas (id integer primary key not null, text1 text, number1 int);'
     );
   }, null, null);
-/*   db.transaction(tx => {
+  if(isOnline){
+  var a = getMoviesFromApiAsync()
+  if(a != null && isOnline){
+  await db.transaction(tx => {
     tx.executeSql(
       'delete from itemas;'
     );
-  }, null, null); */
-  /* var a = getMoviesFromApiAsync()
-    b = a.then((result) => {
-      result.map((item) => {( */
+  }, null, null);
+   
+   
+    b = await a.then((result) => {
+      result.map((item) => {( 
         //Hier wird durch das JSON Obkjekt, welches von der API abgerufen wird iteriert.
         //Dies geschieht um die Daten in die lokale SQLite Datenbank zu schreiben
-        //db.transaction(tx => {tx.executeSql('INSERT OR REPLACE into itemas (id, text1, number1) values (?, ?, ?)', [item.id, item.text1, item.number1])}, null, null)
+        db.transaction(tx => {tx.executeSql('INSERT OR REPLACE into itemas (id, text1, number1) values (?, ?, ?)', [item.id, item.text1, item.number1])}, null, null)
        
-       getItDone().then((result) => {
-        //here do what you want with the results
-        console.log('result')
-      }).catch(() => {console.log('Fehler')})
+      
       
 
-      // )
+      )
       
-      // })
+      })
       
-      // }
-    // )
+      }
+    )
     
-    
- 
-  };
-
-  function getItDone(){
-    return new Promise(function(resolve,reject) {
-
-      var what = true
-      var a = getMoviesFromApiAsync()
-      b = a.then((result) => {
-        result.map((item) => {(
-      db.transaction(tx => {tx.executeSql('INSERT OR REPLACE into itemas (id, text1, number1) values (?, ?, ?)', [item.id, item.text1, item.number1])}, getItDone(), null)
-            )
-      
-       })
-      
-       }
-     )
-  });
   }
+}
+  };
 
 
 
@@ -311,13 +368,13 @@ class SqlTest extends React.Component{
 
   
 
-  componentDidMount(){
-    var a = syncAPI()
+  async componentDidMount(){
+   var a = await syncAPI()
     db.transaction(tx => {
       tx.executeSql(
         `select * from itemas`,
         null,
-        (_, { rows: { _array } }) => this.setState({ items: _array })
+        (_, { rows: { _array } }) => this.setState({ items: _array }, () => {})
       );
     })
   
@@ -325,8 +382,9 @@ class SqlTest extends React.Component{
     //this.update();
   }
 
-  update() {
-    syncAPI()
+  async update() {
+    try{
+    let value = await syncAPI()
     db.transaction(tx => {
       tx.executeSql(
         `select * from itemas`,
@@ -334,17 +392,21 @@ class SqlTest extends React.Component{
         (_, { rows: { _array } }) => this.setState({ items: _array })
       );
     });
-    console.log(this.state)
+  }
+  catch(e){
+    console.log('caught error', e);
+        // Handle exceptions
+  }
+    //console.log(this.state)
   }
   render(){
-    const { items } = this.state;
-    if (items === null || items.length === 0) {
+  let { items } = this.state;
+  if (items === null || items.length === 0) {
+      this.update()
       return (
-        <View style={{ margin: 5 }}>
-      
-      <Button title='Test' onPress={() => this.update
-      }>sdf</Button>
-      </View>
+        <View style={{flex: 1, padding: '50%'}}>
+      <ActivityIndicator size='large'/>
+    </View>
       )
     
      
@@ -355,6 +417,7 @@ class SqlTest extends React.Component{
       <View style={styles.container}>
     <FlatList
       data={this.state.items}
+      
       renderItem={({item}) => (<TouchableOpacity onPress={() => this.update()}><Text style={styles.item}>{item.id}, {item.text1}</Text></TouchableOpacity>)}
       keyExtractor={(item, index) =>  index.toString()}
     />
@@ -487,6 +550,11 @@ class StaticTextScreen extends React.Component {
         <SqlTest/>
       )
 
+      case 'Loc':
+      return(
+        <GetLoc/>
+      )
+
 
 
 
@@ -543,12 +611,32 @@ const styles = StyleSheet.create({
 
 export default class App extends React.Component {
   componentDidMount() {
+
+    
+    NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
+    //syncAPI();
+    
     /* db.transaction(tx => {
       tx.executeSql(
         'create table if not exists items (id integer primary key not null, number int, value text);'
       );
     }); */
   }
+  
+  handleConnectivityChange = isConnected => {
+    if (isConnected) {
+      this.setState({ isConnected });
+      isOnline = true
+      console.log("online")
+    } else {
+      this.setState({ isConnected });
+      isOnline = false
+      console.log("offline")
+    }
+  };
+  componentWillUnmount() {
+    NetInfo.isConnected.removeEventListener('connectionChange', this.handleConnectivityChange);
+ }
   render() {
     return <RootStack />;
   }

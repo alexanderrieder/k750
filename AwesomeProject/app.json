@@ -1,5 +1,18 @@
 {
   "expo": {
-    "sdkVersion": "27.0.0"
+   "name": "dhbwAwesome",
+   "icon": "./icon_temp.png",
+   "version": "0.1.1",
+   "slug": "dhbwAwesome",
+   "sdkVersion": "27.0.0",
+   "ios": {
+     "bundleIdentifier": "com.re-host.diesdas.dhbwAwesomeforever"
+   },
+   "assetBundlePatterns": [
+    "./karsau.png"
+  ]
+  },
+  "updates": {
+    "fallbackToCacheTimeout": 0
   }
 }
