@@ -52,24 +52,34 @@ class GetLoc extends React.Component{
     }
 
     //let location = await Location.getCurrentPositionAsync({});
-    Location.watchHeadingAsync((hea) => console.log(JSON.stringify(hea)))
-    Location.watchPositionAsync({},(lo) => {
+    Location.watchHeadingAsync((lo) => {
       console.log(JSON.stringify(lo))
       this.setState({ lo })});
+  
+    /* Location.watchPositionAsync({},(lo) => {
+      console.log(JSON.stringify(lo))
+      this.setState({ lo })}); */
     //this.setState({ location });
   };
 
   render() {
     let text = 'Waiting..';
+    let deg = '0deg';
     if (this.state.errorMessage) {
       text = this.state.errorMessage;
     } else if (this.state.lo) {
       text = JSON.stringify(this.state.lo);
+      deg = '-' + this.state.lo.trueHeading + 'deg'
     }
 
     return (
       <View style={styles.container}>
         <Text style={styles.paragraph}>{text}</Text>
+        <Text style={styles.paragraph}>{deg}</Text>
+        <Image
+        source={require('./arrow.png')}
+        style={{ transform: [{ rotate: deg}], alignSelf: 'center' }}
+      />
       </View>
     );
   }
