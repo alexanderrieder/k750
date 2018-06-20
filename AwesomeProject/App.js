@@ -28,6 +28,8 @@ class LogoTitle extends React.Component {
   }
 }
 
+var points; 
+
 class GetLoc extends React.Component{
   state = {
     location: null,
@@ -49,10 +51,20 @@ class GetLoc extends React.Component{
     
   };
 
-  componentWillMount() {
+  async componentWillMount() {
       Location.setApiKey('AIzaSyAIoKTYvCWftWH2xeV45o__y9Cj-jFIvCU');
       //this._getLocationAsync();
-      this.doit();
+      var a = await syncAPI();
+      db.transaction(tx => {
+        tx.executeSql(
+          `select * from rallyepoints`,
+          null,
+          (_, { rows: { _array } }) => {
+            points = _array;
+            this.doit()}, () => {})
+        
+      })
+     // this.doit();
       //this._getLocationAsync();
     
   }
@@ -107,10 +119,14 @@ class GetLoc extends React.Component{
         usrlongitude = lo.longitude
         }); 
  */
+let firstpoint = points[0];
+
+
+
     this.setState({
       target: {
-        latitude: 39.379626,
-        longitude: 3.240804,
+        latitude: firstpoint.latitude,
+        longitude: firstpoint.longitude,
       },
       user: {
         latitude: usrlatitude,
@@ -275,21 +291,15 @@ class Contact extends React.Component{
 function getMoviesFromApiAsync() {
   if(isOnline){
   try{
-  return fetch("https://api.re-host.eu/api/testapi/all?limit=100000", {
-    method: 'GET',
-    headers: {
-      'X-Api-Key': '05DA927B0DAFD5FF7FDC31EB2A20FBAF',
-      'Limit': '1000'
-    },
-   
-}).then((response) => {
+  return fetch("https://api.re-host.eu/rallye.json").then((response) => {
   if(response.status === 200)
+  //console.log(response.json())
   return response.json()
-  alert('This is a button!')
+  
 })
   .then((responseJson) => {
-
-    return responseJson.data.testapi;
+    //console.log(responseJson)
+    return responseJson.checkpoints;
     
 
     
@@ -415,29 +425,31 @@ async function syncAPI() {
   }, null, null); */
   await db.transaction(tx => {
     tx.executeSql(
-      'create table if not exists itemas (id integer primary key not null, text1 text, number1 int);'
+      'create table if not exists rallyepoints (id integer primary key not null, title text, latitude text, longitude text, shorttext text, longtext text, thumbnail text, uri text);'
     );
   }, null, null);
   if(isOnline){
   var a = getMoviesFromApiAsync()
+  
   if(a != null && isOnline){
   await db.transaction(tx => {
     tx.executeSql(
-      'delete from itemas;'
+      'delete from rallyepoints;'
     );
   }, null, null);
    
    
     b = await a.then((result) => {
-      result.map((item) => {( 
+      result.map((item) => { 
+       // console.log(item)
         //Hier wird durch das JSON Obkjekt, welches von der API abgerufen wird iteriert.
         //Dies geschieht um die Daten in die lokale SQLite Datenbank zu schreiben
-        db.transaction(tx => {tx.executeSql('INSERT OR REPLACE into itemas (id, text1, number1) values (?, ?, ?)', [item.id, item.text1, item.number1])}, null, null)
+        db.transaction(tx => {tx.executeSql('INSERT OR REPLACE into rallyepoints (id, title, latitude, longitude, shorttext, longtext, thumbnail, uri) values (?, ?, ?, ?, ?, ?, ?, ?)', [item.id, item.title, item.location.latitude, item.location.longitude, item.shortText, item.text, item.thumbnail, item.uri])}, null, null)
        
       
       
 
-      )
+      
       
       })
       
