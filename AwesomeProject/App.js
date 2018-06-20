@@ -1,8 +1,9 @@
 import React,  { Component }  from 'react';
-import { StyleSheet, Text, View, AppRegistry, Image, Button, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, NetInfo, Platform } from 'react-native';
+import { StyleSheet, Text, View, Image, AppRegistry, Button, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, NetInfo, Platform } from 'react-native';
 import { createStackNavigator } from 'react-navigation';
 import Expo from 'expo';
 import { MapView, Permissions, BarCodeScanner, SQLite, Location } from 'expo';
+import { getDistance, getRhumbLineBearing, getBearing } from 'geolib';
 
 
 
@@ -31,16 +32,35 @@ class GetLoc extends React.Component{
   state = {
     location: null,
     errorMessage: null,
+    target: {
+        latitude: 37.78825,
+        longitude: -122.4324,
+      },
+      user: {
+        latitude: 37,
+        longitude: -122,
+        trueHeading: 0,
+        
+      },
+      mark: {
+        latitude: 37.78825,
+        longitude: -122.4324,
+      },
+    
   };
 
   componentWillMount() {
-    if (Platform.OS === 'android' && !Constants.isDevice) {
-      this.setState({
-        errorMessage: 'Oops, this will not work on Sketch in an Android emulator. Try it on your device!',
-      });
-    } else {
-      this._getLocationAsync();
-    }
+      Location.setApiKey('AIzaSyAIoKTYvCWftWH2xeV45o__y9Cj-jFIvCU');
+      //this._getLocationAsync();
+      this.doit();
+      //this._getLocationAsync();
+    
+  }
+
+  doit(){
+    Location.watchPositionAsync({},this._getLocationAsync);
+    Location.watchHeadingAsync(this._getLocationAsync);
+     
   }
 
   _getLocationAsync = async () => {
@@ -51,35 +71,94 @@ class GetLoc extends React.Component{
       });
     }
 
+    /* this.state = ({
+      target: {
+        latitude: 37.78825,
+        longitude: -122.4324,
+      },
+      user: {
+        latitude: 37,
+        longitude: -122,
+        heading: {
+          trueHeading: 0,
+        }
+      },
+      mark: {
+        latitude: 37.78825,
+        longitude: -122.4324,
+      },
+    }) */
+
     //let location = await Location.getCurrentPositionAsync({});
-    Location.watchHeadingAsync((lo) => {
+    
+    
+    let location = await Location.getCurrentPositionAsync({});
+    let usrlatitude = location.coords.latitude
+    let usrlongitude = location.coords.longitude
+    let usrheading = await Location.getHeadingAsync();
+    usrheading = usrheading.trueHeading
+
+    /* Location.watchHeadingAsync((lo) => {
+      usrheading = lo.trueHeading
+      });
+
+      Location.watchPositionAsync({},(lo) => {
+        usrlatitude = lo.latitude
+        usrlongitude = lo.longitude
+        }); 
+ */
+    this.setState({
+      target: {
+        latitude: 39.379626,
+        longitude: 3.240804,
+      },
+      user: {
+        latitude: usrlatitude,
+        longitude: usrlongitude,
+        heading: usrheading,
+      },
+      mark: {
+        latitude: 37.78825,
+        longitude: -122.4324,
+      },
+    })
+   
+    /*  Location.watchPositionAsync({},(lo) => {
       console.log(JSON.stringify(lo))
-      this.setState({ lo })});
-  
-    /* Location.watchPositionAsync({},(lo) => {
-      console.log(JSON.stringify(lo))
-      this.setState({ lo })}); */
+      this.setState({ lo })});  */
     //this.setState({ location });
+    
+    
   };
 
   render() {
     let text = 'Waiting..';
+    let text2 = "";
     let deg = '0deg';
     if (this.state.errorMessage) {
       text = this.state.errorMessage;
-    } else if (this.state.lo) {
-      text = JSON.stringify(this.state.lo);
-      deg = '-' + this.state.lo.trueHeading + 'deg'
+    } else if(this.state.user != null){
+      
+      let trgpos = {latitude: this.state.target.latitude, longitude: this.state.target.longitude}
+      let usrpos = {latitude: this.state.user.latitude, longitude: this.state.user.longitude}
+      let direction = geolib.getRhumbLineBearing(usrpos, trgpos) //oder getBearing
+      text = getDistance(usrpos, trgpos);
+      text2 = direction;
+      //console.log(text)
+      //console.log(text2)
+      deg = (-1 * (this.state.user.heading - direction)) + 'deg'
     }
 
     return (
       <View style={styles.container}>
-        <Text style={styles.paragraph}>{text}</Text>
+        
         <Text style={styles.paragraph}>{deg}</Text>
+        <Text style={styles.paragraph}>{text2}</Text>
         <Image
         source={require('./arrow.png')}
-        style={{ transform: [{ rotate: deg}], alignSelf: 'center' }}
+        style={{ transform: [{ rotate: deg}],  width: 50, height: 50, flex: 1, resizeMode: 'contain', alignSelf: 'center', paddingBottom: -100  }}
       />
+      <Text style={{fontSize: 35, flex: 1, alignSelf: 'center'}}>{text}m</Text>
       </View>
     );
   }
