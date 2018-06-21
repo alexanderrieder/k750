@@ -12,7 +12,17 @@ import { getDistance, getRhumbLineBearing, getBearing } from 'geolib';
 const db = SQLite.openDatabase('db1234.db');
 var isOnline = true;
 
-
+async function readFromSQLite(){
+  let rtrnvl = await db.transaction(tx => {
+    tx.executeSql(
+      `select * from rallyepoints`,
+      null,
+      (_, { rows: { _array } }) => {
+        return _array}, () => {})
+    
+  })
+  return rtrnvl;
+}
 
 
 class LogoTitle extends React.Component {
@@ -20,17 +30,159 @@ class LogoTitle extends React.Component {
     return (
       <View style={{flex: 1}}>
       <Image
-        source={require('./spiro.png')}
-        style={{ width: 30, height: 30, flex: 1, resizeMode: 'contain', alignSelf: 'center' }}
+        source={require('./assets/logo1.png')}
+        style={{ width: 45, height: 45, flex: 1, resizeMode: 'contain', alignSelf: 'center' }}
       />
       </View>
     );
   }
 }
 
+
+
+
+class RallyeOverview extends React.Component{
+  static navigationOptions = ({ navigation }) => {
+    const { params } = navigation.state;
+    
+    return {
+      title: params ? params.title : 'Static Text Screen',
+    }
+  };
+  async componentWillMount() {
+    Location.setApiKey('AIzaSyAIoKTYvCWftWH2xeV45o__y9Cj-jFIvCU');
+    //this._getLocationAsync();
+    var a = await syncAPI();
+    var b = readFromSQLite();
+    //points = await b;
+    //console.log(b)
+    //this.doit()
+    db.transaction(tx => {
+      tx.executeSql(
+        `select * from rallyepoints`,
+        null,
+        (_, { rows: { _array } }) => {
+          points = _array;
+          this.doit()}, () => {})
+      
+    }) 
+   // this.doit();
+    //this._getLocationAsync();
+  
+}
+
+doit(){
+  Location.watchPositionAsync({},this._getLocationAsync);
+  Location.watchHeadingAsync(this._getLocationAsync);
+   
+}
+
+_getLocationAsync = async () => {
+  let { status } = await Permissions.askAsync(Permissions.LOCATION);
+  if (status !== 'granted') {
+    this.setState({
+      errorMessage: 'Permission to access location was denied',
+    });
+  }
+
+  /* this.state = ({
+    target: {
+      latitude: 37.78825,
+      longitude: -122.4324,
+    },
+    user: {
+      latitude: 37,
+      longitude: -122,
+      heading: {
+        trueHeading: 0,
+      }
+    },
+    mark: {
+      latitude: 37.78825,
+      longitude: -122.4324,
+    },
+  }) */
+
+  //let location = await Location.getCurrentPositionAsync({});
+  
+  
+  let location = await Location.getCurrentPositionAsync({});
+  let usrlatitude = location.coords.latitude
+  let usrlongitude = location.coords.longitude
+  let usrheading = await Location.getHeadingAsync();
+  usrheading = usrheading.trueHeading
+
+  /* Location.watchHeadingAsync((lo) => {
+    usrheading = lo.trueHeading
+    });
+
+    Location.watchPositionAsync({},(lo) => {
+      usrlatitude = lo.latitude
+      usrlongitude = lo.longitude
+      }); 
+*/
+console.log(points)
+let firstpoint = points[0];
+
+
+
+  this.setState({
+    target: {
+      latitude: firstpoint.latitude,
+      longitude: firstpoint.longitude,
+    },
+    user: {
+      latitude: usrlatitude,
+      longitude: usrlongitude,
+      heading: usrheading,
+    },
+    mark: {
+      latitude: 37.78825,
+      longitude: -122.4324,
+    },
+  })
+ 
+  /*  Location.watchPositionAsync({},(lo) => {
+    console.log(JSON.stringify(lo))
+    this.setState({ lo })});  */
+  //this.setState({ location });
+  
+  
+};
+  render() {
+    return(
+      <View style={styles.container}>
+      
+      <FlatList
+          data={points}
+          renderItem={({item}) => <TouchableOpacity onPress={() =>
+            this.props.navigation.push("Navigation", {
+              itemId: '33', title: item.title, latitude: item.latitude, longitude: item.longitude},
+            )}
+            ><Text style={styles.item}>{item.title}</Text></TouchableOpacity>}
+            keyExtractor={(item, index) => index}
+        />
+
+      </View>
+
+          )
+  }
+}
+
 var points; 
 
 class GetLoc extends React.Component{
+
+  static navigationOptions = ({ navigation }) => {
+    const { params } = navigation.state;
+    
+    return {
+      title: params ? params.title : 'Static Text Screen',
+    }
+  };
+
+
+  
   state = {
     location: null,
     errorMessage: null,
@@ -55,6 +207,10 @@ class GetLoc extends React.Component{
       Location.setApiKey('AIzaSyAIoKTYvCWftWH2xeV45o__y9Cj-jFIvCU');
       //this._getLocationAsync();
       var a = await syncAPI();
+      var b = readFromSQLite();
+      //points = await b;
+      //console.log(b)
+      //this.doit()
       db.transaction(tx => {
         tx.executeSql(
           `select * from rallyepoints`,
@@ -63,7 +219,7 @@ class GetLoc extends React.Component{
             points = _array;
             this.doit()}, () => {})
         
-      })
+      }) 
      // this.doit();
       //this._getLocationAsync();
     
@@ -119,14 +275,19 @@ class GetLoc extends React.Component{
         usrlongitude = lo.longitude
         }); 
  */
+console.log(points)
 let firstpoint = points[0];
 
+
+const { navigation } = this.props;
+const tarlatitude = navigation.getParam('latitude', );
+const tarlongitude = navigation.getParam('longitude', );
 
 
     this.setState({
       target: {
-        latitude: firstpoint.latitude,
-        longitude: firstpoint.longitude,
+        latitude: tarlatitude,
+        longitude: tarlongitude,
       },
       user: {
         latitude: usrlatitude,
@@ -168,8 +329,19 @@ let firstpoint = points[0];
     return (
       <View style={styles.container}>
         
-        <Text style={styles.paragraph}>{deg}</Text>
-        <Text style={styles.paragraph}>{text2}</Text>
+        <MapView
+        style={{ flex: 1 }}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
+        showsCompass={true}
+
+         region={{
+          latitude: this.state.user.latitude,
+          longitude: this.state.user.longitude,
+          latitudeDelta: 0.0022,
+          longitudeDelta: 0.0221,
+        }} 
+      />
         <Image
         source={require('./arrow.png')}
         style={{ transform: [{ rotate: deg}],  width: 50, height: 50, flex: 1, resizeMode: 'contain', alignSelf: 'center', paddingBottom: -100  }}
@@ -211,12 +383,12 @@ class HomeScreen extends React.Component {
           data={[
             {key: 'Über Karsau', togo: 'Static', content: 'History'},
             {key: 'Kontakt', togo: 'Static', content: 'Contact'},
-            {key: 'Kartenansicht', togo: 'Static', content: 'Map'},
-            {key: 'bcScanner', togo: 'Static', content: 'bc'},
-            {key: 'Server', togo: 'Static', content: 'Server'},
-            {key: 'SQL', togo: 'Static', content: 'SQL'},
-            {key: 'Alex', togo: 'Static', content: 'Loc'},
-            {key: 'EE'},
+            //{key: 'Kartenansicht', togo: 'Static', content: 'Map'},
+            //{key: 'bcScanner', togo: 'Static', content: 'bc'},
+            //{key: 'Server', togo: 'Static', content: 'Server'},
+            //{key: 'SQL', togo: 'Static', content: 'SQL'},
+            {key: 'Schnitzeljagd', togo: 'RallyeOverview', content: 'Loc'},
+            //{key: 'EE'},
           ]}
           renderItem={({item}) => <TouchableOpacity onPress={() =>
             this.props.navigation.push(item.togo, {
@@ -556,12 +728,12 @@ class MapScreen extends React.Component{
         showsMyLocationButton={true}
         showsCompass={true}
 
-        initialRegion={{
-          latitude: 37.78825,
-          longitude: -122.4324,
+         initialRegion={{
+          latitude: this.props.latitude,
+          longitude: this.props.longitude,
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
-        }}
+        }} 
       />
     );
   }
@@ -653,7 +825,7 @@ class StaticTextScreen extends React.Component {
 
       case 'Loc':
       return(
-        <GetLoc/>
+        <RallyeOverview/>
       )
 
 
@@ -675,12 +847,14 @@ const RootStack = createStackNavigator(
     Home: HomeScreen,
     Details: DetailsScreen,
     Static: StaticTextScreen,
+    RallyeOverview: RallyeOverview,
+    Navigation: GetLoc,
   },
   {
     initialRouteName: 'Home',
     navigationOptions: {
       headerStyle: {
-        backgroundColor: '#f4511e',
+        backgroundColor: '#bbbbbb',
       },
       headerTintColor: '#fff',
       headerTitleStyle: {

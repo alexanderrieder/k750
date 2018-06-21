@@ -2,6 +2,9 @@
   "expo": {
    "name": "dhbwAwesome",
    "icon": "./icon_temp.png",
+   "splash": {
+    "image": "./assets/splash-2.png"
+  },
    "version": "0.1.1",
    "slug": "dhbwAwesome",
    "sdkVersion": "27.0.0",
