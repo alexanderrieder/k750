@@ -1,5 +1,5 @@
 import React,  { Component }  from 'react';
-import { StyleSheet, Text, View, Image, AppRegistry, Button, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, NetInfo, Platform } from 'react-native';
+import { StyleSheet, AsyncStorage, Text, View, Image, AppRegistry, Button, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, NetInfo, Platform } from 'react-native';
 import { createStackNavigator } from 'react-navigation';
 import Expo from 'expo';
 import { MapView, Permissions, BarCodeScanner, SQLite, Location } from 'expo';
@@ -490,6 +490,38 @@ function getMoviesFromApiAsync() {
   }
 }
 
+
+
+function getAPIversion() {
+  if(isOnline){
+  try{
+  return fetch("https://api.re-host.eu/rallye.json").then((response) => {
+  if(response.status === 200)
+  //console.log(response.json())
+  return response.json()
+  
+})
+  .then((responseJson) => {
+    //console.log(responseJson)
+    return responseJson.metadata;
+    
+
+    
+
+  })
+  .catch((error) =>{
+    console.error(error);
+    throw Error(response.statusText)
+  })
+}catch(e){
+  alert('This is a button!')
+  console.log(e)
+}
+  }else{
+    return null
+  }
+}
+
 class Server extends React.Component{
   constructor(props){
     super(props);
@@ -595,6 +627,22 @@ async function syncAPI() {
       'drop table itemas;'
     );
   }, null, null); */
+  let nrversion = 0
+  let tmp = getAPIversion();
+  let tmp2 = await tmp.then((result) => {
+    result.map((item) => { 
+      nrversion = item.version
+      console.log('nrversion ' + nrversion)
+    })})
+
+  let rversion = 0
+  try {
+    rversion = await AsyncStorage.getItem('rallyeversion')
+    console.log(rversion + ' //////////// ' + nrversion)
+  } catch (error) {
+    
+  }
+  if(nrversion > rversion){
   await db.transaction(tx => {
     tx.executeSql(
       'create table if not exists rallyepoints (id integer primary key not null, title text, latitude text, longitude text, shorttext text, longtext text, thumbnail text, uri text);'
@@ -602,8 +650,10 @@ async function syncAPI() {
   }, null, null);
   if(isOnline){
   var a = getMoviesFromApiAsync()
-  
+
   if(a != null && isOnline){
+
+  
   await db.transaction(tx => {
     tx.executeSql(
       'delete from rallyepoints;'
@@ -629,6 +679,9 @@ async function syncAPI() {
     )
     
   }
+}
+AsyncStorage.setItem('rallyeversion', nrversion)
+
 }
   };
 
