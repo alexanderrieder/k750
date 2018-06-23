@@ -1,9 +1,9 @@
 {
   "expo": {
    "name": "dhbwAwesome",
-   "icon": "./icon_temp.png",
+   "icon": "./assets/icon.png",
    "splash": {
-    "image": "./assets/splash-2.png"
+    "image": "./assets/splash.png"
   },
    "version": "0.1.1",
    "slug": "dhbwAwesome",

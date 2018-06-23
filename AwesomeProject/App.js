@@ -54,28 +54,51 @@ class RallyeOverview extends React.Component{
     //this._getLocationAsync();
     var a = await syncAPI();
     var b = readFromSQLite();
+    console.log("again")
     //points = await b;
     //console.log(b)
     //this.doit()
-    db.transaction(tx => {
-      tx.executeSql(
-        `select * from rallyepoints`,
-        null,
-        (_, { rows: { _array } }) => {
-          points = _array;
-          this.doit()}, () => {})
-      
-    }) 
+    await this.doit()
    // this.doit();
     //this._getLocationAsync();
   
 }
 
-doit(){
-  Location.watchPositionAsync({},this._getLocationAsync);
-  Location.watchHeadingAsync(this._getLocationAsync);
-   
+async doit(){
+  await db.transaction(async tx => {
+     
+    tx.executeSql(
+      `select * from rallyepoints`,
+      null,
+      async (_,  { rows: { _array } }) => {
+       
+        let unlockPOIs = await AsyncStorage.getItem('unlockedPOIs')
+       
+        unlockPOIs = JSON.parse(unlockPOIs)
+        points = []
+        console.log(unlockPOIs)
+        for(var i = 0; i < unlockPOIs.length; i++){
+        for(var j = 0; j < _array.length; j++){
+        
+          
+            if(_array[j].id == unlockPOIs[i]){
+              
+              points.push(_array[j])
+              
+            }
+          }
+        
+      }
+      console.log(points)
+        
+      await this._getLocationAsync()}, () => {})
+    
+  }) 
 }
+handleOnNavigateBack = () => {
+  this.doit();
+}
+
 
 _getLocationAsync = async () => {
   let { status } = await Permissions.askAsync(Permissions.LOCATION);
@@ -106,11 +129,7 @@ _getLocationAsync = async () => {
   //let location = await Location.getCurrentPositionAsync({});
   
   
-  let location = await Location.getCurrentPositionAsync({});
-  let usrlatitude = location.coords.latitude
-  let usrlongitude = location.coords.longitude
-  let usrheading = await Location.getHeadingAsync();
-  usrheading = usrheading.trueHeading
+  
 
   /* Location.watchHeadingAsync((lo) => {
     usrheading = lo.trueHeading
@@ -121,25 +140,13 @@ _getLocationAsync = async () => {
       usrlongitude = lo.longitude
       }); 
 */
-console.log(points)
-let firstpoint = points[0];
+//console.log(points)
 
 
+var tmppoints = JSON.stringify(points)
 
   this.setState({
-    target: {
-      latitude: firstpoint.latitude,
-      longitude: firstpoint.longitude,
-    },
-    user: {
-      latitude: usrlatitude,
-      longitude: usrlongitude,
-      heading: usrheading,
-    },
-    mark: {
-      latitude: 37.78825,
-      longitude: -122.4324,
-    },
+    pois: tmppoints
   })
  
   /*  Location.watchPositionAsync({},(lo) => {
@@ -150,14 +157,22 @@ let firstpoint = points[0];
   
 };
   render() {
+   
+    if(!this.state){
+      return(
+        <Text>...</Text>
+      )
+    }
+    let ppoints = JSON.parse(this.state.pois)
     return(
       <View style={styles.container}>
+
       
       <FlatList
-          data={points}
+          data={ppoints}
           renderItem={({item}) => <TouchableOpacity onPress={() =>
             this.props.navigation.push("Navigation", {
-              itemId: '33', title: item.title, latitude: item.latitude, longitude: item.longitude},
+              itemId: item.id, title: item.title, latitude: item.latitude, longitude: item.longitude, onNavigateBack: this.handleOnNavigateBack},
             )}
             ><Text style={styles.item}>{item.title}</Text></TouchableOpacity>}
             keyExtractor={(item, index) => index}
@@ -169,7 +184,7 @@ let firstpoint = points[0];
   }
 }
 
-var points; 
+var points = []; 
 
 class GetLoc extends React.Component{
 
@@ -230,6 +245,17 @@ class GetLoc extends React.Component{
     Location.watchHeadingAsync(this._getLocationAsync);
      
   }
+  doOnSuccess = async (verifyQR) => {
+    await unlockNextPOI(verifyQR)
+    this.props.navigation.state.params.onNavigateBack()
+    const { navigation } = this.props;
+    let currentid = navigation.getParam('itemId', );
+    if(verifyQR == currentid){
+    this.props.navigation.goBack()
+    }else{
+      alert("Falscher QR-Code")
+    }
+  }
 
   _getLocationAsync = async () => {
     let { status } = await Permissions.askAsync(Permissions.LOCATION);
@@ -275,7 +301,7 @@ class GetLoc extends React.Component{
         usrlongitude = lo.longitude
         }); 
  */
-console.log(points)
+//console.log(points)
 let firstpoint = points[0];
 
 
@@ -347,8 +373,38 @@ const tarlongitude = navigation.getParam('longitude', );
         style={{ transform: [{ rotate: deg}],  width: 50, height: 50, flex: 1, resizeMode: 'contain', alignSelf: 'center', paddingBottom: -100  }}
       />
       <Text style={{fontSize: 35, flex: 1, alignSelf: 'center'}}>{text}m</Text>
+      <Button
+  onPress={() =>
+    this.props.navigation.push("QRreader", {
+      itemId: '33', title: 'QR-Code scannen', onNavigateBack: this.doOnSuccess},
+    )}
+  title="QR-Code scannen"
+  color="#841584"
+  accessibilityLabel="QR-Code scannen"
+/> 
       </View>
     );
+  }
+}
+
+
+
+async function unlockNextPOI(data){
+  let route = await AsyncStorage.getItem('rallyetour')
+  let unlocked = await AsyncStorage.getItem('unlockedPOIs')
+  console.log("######################################################################")
+  route = JSON.parse(route)
+  unlocked = JSON.parse(unlocked)
+
+  let lastunlocked = unlocked[unlocked.length-1]
+  if(lastunlocked == data){
+  if(unlocked.length < route.length){
+    var diflength = route.length - unlocked.length
+    var copyposition = route.length - diflength
+    console.log(route[copyposition])
+    unlocked.push(route[copyposition])
+    await AsyncStorage.setItem('unlockedPOIs', JSON.stringify(unlocked))
+  }
   }
 }
 
@@ -404,14 +460,26 @@ class HomeScreen extends React.Component {
 class BCarcodescanner extends React.Component{
   state = {
     hasCameraPermission: null,
+    read: null
   }
+  static navigationOptions = ({ navigation }) => {
+    const { params ,} = navigation.state;
+    
+    return {
+      title: params ? params.title : 'Static Text Screen',
+    }
+  };
+
 
   async componentWillMount() {
     const { status } = await Permissions.askAsync(Permissions.CAMERA);
     this.setState({hasCameraPermission: status === 'granted'});
     }
+    
+
 
   render() {
+    
     const { hasCameraPermission } = this.state;
 
     if (hasCameraPermission === null) {
@@ -429,11 +497,24 @@ class BCarcodescanner extends React.Component{
       );
     }
   }
-  _handleBarCodeRead = ({ type, data }) => {
-    alert(`Bar code with type ${type} and data ${data} has been scanned!`);
+  _handleBarCodeRead = async ({ type, data }) => {
+    await delay(500);
+    if (this.state.read == data) return;
+    this.setState({ read: data });
+    this.props.navigation.state.params.onNavigateBack(data)
+    
+    this.props.navigation.goBack()
+    
+
+
   }
 }
 
+function delay(time) {
+  return new Promise(function(resolve, reject) {
+    setTimeout(() => resolve(), time);
+  });
+}
 
 
 class Contact extends React.Component{
@@ -463,7 +544,13 @@ class Contact extends React.Component{
 function getMoviesFromApiAsync() {
   if(isOnline){
   try{
-  return fetch("https://api.re-host.eu/rallye.json").then((response) => {
+  return fetch("https://api.re-host.eu/rallye.json", {
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': 0
+    }
+  }).then((response) => {
   if(response.status === 200)
   //console.log(response.json())
   return response.json()
@@ -495,7 +582,13 @@ function getMoviesFromApiAsync() {
 function getAPIversion() {
   if(isOnline){
   try{
-  return fetch("https://api.re-host.eu/rallye.json").then((response) => {
+  return fetch("https://api.re-host.eu/rallye.json", {
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': 0
+    }
+  }).then((response) => {
   if(response.status === 200)
   //console.log(response.json())
   return response.json()
@@ -504,6 +597,43 @@ function getAPIversion() {
   .then((responseJson) => {
     //console.log(responseJson)
     return responseJson.metadata;
+    
+
+    
+
+  })
+  .catch((error) =>{
+    console.error(error);
+    throw Error(response.statusText)
+  })
+}catch(e){
+  alert('This is a button!')
+  console.log(e)
+}
+  }else{
+    return null
+  }
+}
+
+
+function getRallyeOrder() {
+  if(isOnline){
+  try{
+  return fetch("https://api.re-host.eu/rallye.json", {
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': 0
+    }
+  }).then((response) => {
+  if(response.status === 200)
+  //console.log(response.json())
+  return response.json()
+  
+})
+  .then((responseJson) => {
+    //console.log(responseJson)
+    return responseJson.tours;
     
 
     
@@ -622,17 +752,24 @@ class History extends React.Component{
 
 
 async function syncAPI() {
+  await db.transaction(tx => {
+    tx.executeSql(
+      'create table if not exists rallyepoints (id integer primary key not null, title text, latitude text, longitude text, shorttext text, longtext text, thumbnail text, uri text);'
+    );
+  }, null, null);
   /* db.transaction(tx => {
     tx.executeSql(
       'drop table itemas;'
     );
   }, null, null); */
+  if(isOnline){
   let nrversion = 0
   let tmp = getAPIversion();
   let tmp2 = await tmp.then((result) => {
     result.map((item) => { 
+     
       nrversion = item.version
-      console.log('nrversion ' + nrversion)
+     
     })})
 
   let rversion = 0
@@ -642,13 +779,36 @@ async function syncAPI() {
   } catch (error) {
     
   }
+
+  let tmp3 = getRallyeOrder();
+  let tmp4 = await tmp3.then((result) => {
+    result.map((item) => { 
+      AsyncStorage.setItem('rallyetour', JSON.stringify(item.checkpoints))
+    })})
+
+
+    try {
+      await AsyncStorage.getItem('unlockedPOIs')
+    } catch (error) {
+      
+   }
+
+
+
+
+
   if(nrversion > rversion){
-  await db.transaction(tx => {
-    tx.executeSql(
-      'create table if not exists rallyepoints (id integer primary key not null, title text, latitude text, longitude text, shorttext text, longtext text, thumbnail text, uri text);'
-    );
-  }, null, null);
-  if(isOnline){
+  
+    let allpois = await AsyncStorage.getItem('rallyetour')
+    let parsed = JSON.parse(allpois)
+    console.log("Parsed")
+    console.log(parsed[0])
+    let poilist = [parsed[0]]
+    console.log(poilist)
+    await AsyncStorage.setItem('unlockedPOIs', JSON.stringify(poilist))
+
+
+
   var a = getMoviesFromApiAsync()
 
   if(a != null && isOnline){
@@ -679,8 +839,9 @@ async function syncAPI() {
     )
     
   }
+  AsyncStorage.setItem('rallyeversion', nrversion)
 }
-AsyncStorage.setItem('rallyeversion', nrversion)
+
 
 }
   };
@@ -902,6 +1063,7 @@ const RootStack = createStackNavigator(
     Static: StaticTextScreen,
     RallyeOverview: RallyeOverview,
     Navigation: GetLoc,
+    QRreader: BCarcodescanner,
   },
   {
     initialRouteName: 'Home',
