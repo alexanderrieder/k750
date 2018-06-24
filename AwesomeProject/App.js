@@ -1,5 +1,5 @@
 import React,  { Component }  from 'react';
-import { StyleSheet, AsyncStorage, Text, View, Image, AppRegistry, Button, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, NetInfo, Platform } from 'react-native';
+import { StyleSheet, SectionList, AsyncStorage, Text, View, Image, AppRegistry, Button, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, NetInfo, Platform } from 'react-native';
 import { createStackNavigator } from 'react-navigation';
 import Expo from 'expo';
 import { MapView, Permissions, BarCodeScanner, SQLite, Location } from 'expo';
@@ -38,7 +38,105 @@ class LogoTitle extends React.Component {
   }
 }
 
+class EventDetails extends React.Component{
+  static navigationOptions = ({ navigation }) => {
+    const { params ,} = navigation.state;
+    
+    return {
+      title: params ? params.title : 'Static Text Screen',
+    }
+  };
 
+  componentWillMount(){
+    const { navigation } = this.props;
+    const itemtitle = navigation.getParam('title', );
+    const itemtext = navigation.getParam('text', );
+    const itemthumb = navigation.getParam('thumbnailuri', );
+    
+
+    this.setState({
+      title: itemtitle,
+      text: itemtext,
+      thumb: itemthumb,
+    })
+  }
+
+
+  render(){
+
+    return(
+      <View style={styles.container}>
+      
+       {<Image
+          style={{width: '100%', height: '50%'}}
+          source={{uri: this.state.thumb}}
+        />}
+        <ScrollView>
+      <Text style={styles.longtext}>{this.state.text}</Text>
+      </ScrollView>
+      </View>
+    );
+  }
+}
+
+class EventOverview extends React.Component{
+  static navigationOptions = ({ navigation }) => {
+    const { params ,} = navigation.state;
+    
+    return {
+      title: params ? params.title : 'Static Text Screen',
+    }
+  };
+  async componentWillMount(){
+    let eventslist
+    try {
+      eventslist = await AsyncStorage.getItem("events")
+      eventslist = JSON.parse(eventslist)
+    } catch (error) {
+      alert("Fehler, bitte später erneut versuchen")
+    }
+    let sectionarray = []
+
+    for(var i = 0; i < eventslist.length; i++){
+      let eventsarray = []
+      for(var j = 0; j < eventslist[i].events.length; j++){
+      eventsarray.push(eventslist[i].events[j])
+    }
+    sectionarray.push({title: eventslist[i].locationName, data: eventsarray})
+  }
+
+  eventslist = JSON.stringify(eventslist)
+
+    this.setState({
+      events: sectionarray,
+      allevents: eventslist
+    })
+  }
+  render(){
+
+    if(!this.state){
+      return(
+        <Text>...</Text>
+      )
+    }
+    let eventdata = this.state.events
+    console.log(eventdata)
+    return(
+      <SectionList
+      renderItem={({item, index, section}) => <TouchableOpacity onPress={() =>
+        this.props.navigation.push("EventDetails", {
+          title: item.title, text: item.text, date: item.date, thumbnailuri: item.thumbnail},
+        )}
+        ><Text style={styles.item} key={index}>{item.date}: {item.title}</Text></TouchableOpacity>}
+      renderSectionHeader={({section: {title}}) => (
+        <Text style={styles.SectionHeaderStyle}>{title}</Text>
+      )}
+      sections={eventdata}
+      keyExtractor={(item, index) => item + index}
+    />
+    );
+  }
+}
 
 
 class RallyeOverview extends React.Component{
@@ -193,6 +291,7 @@ class GetLoc extends React.Component{
     
     return {
       title: params ? params.title : 'Static Text Screen',
+       backButtonTitle: '',
     }
   };
 
@@ -411,6 +510,7 @@ async function unlockNextPOI(data){
 class HomeScreen extends React.Component {
   
   static navigationOptions = {
+    backButtonTitle: '',
     
     headerTitle: <LogoTitle />,
     //headerTitleStyle: {flex: 1},
@@ -439,6 +539,7 @@ class HomeScreen extends React.Component {
           data={[
             {key: 'Über Karsau', togo: 'Static', content: 'History'},
             {key: 'Kontakt', togo: 'Static', content: 'Contact'},
+            {key: 'Festprogramm', togo: 'Events', content: 'event'},
             //{key: 'Kartenansicht', togo: 'Static', content: 'Map'},
             //{key: 'bcScanner', togo: 'Static', content: 'bc'},
             //{key: 'Server', togo: 'Static', content: 'Server'},
@@ -652,6 +753,42 @@ function getRallyeOrder() {
   }
 }
 
+function getEvents() {
+  if(isOnline){
+  try{
+  return fetch("https://api.re-host.eu/fest.json", {
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': 0
+    }
+  }).then((response) => {
+  if(response.status === 200)
+  //console.log(response.json())
+  return response.json()
+  
+})
+  .then((responseJson) => {
+    console.log(responseJson.locations)
+    return responseJson.locations;
+    
+
+    
+
+  })
+  .catch((error) =>{
+    console.error(error);
+    throw Error(response.statusText)
+  })
+}catch(e){
+  alert('This is a button!')
+  console.log(e)
+}
+  }else{
+    return null
+  }
+}
+
 class Server extends React.Component{
   constructor(props){
     super(props);
@@ -785,6 +922,13 @@ async function syncAPI() {
     result.map((item) => { 
       AsyncStorage.setItem('rallyetour', JSON.stringify(item.checkpoints))
     })})
+
+    let tmp5 = getEvents();
+  let tmp6 = await tmp5.then((result) => {
+    //result.map((item) => { 
+      AsyncStorage.setItem('events', JSON.stringify(result))
+  //  })
+  })
 
 
     try {
@@ -1064,13 +1208,16 @@ const RootStack = createStackNavigator(
     RallyeOverview: RallyeOverview,
     Navigation: GetLoc,
     QRreader: BCarcodescanner,
+    Events: EventOverview,
+    EventDetails: EventDetails,
   },
   {
     initialRouteName: 'Home',
     navigationOptions: {
       headerStyle: {
-        backgroundColor: '#bbbbbb',
+        backgroundColor: '#618D33',
       },
+      headerBackTitle: ' ',
       headerTintColor: '#fff',
       headerTitleStyle: {
         fontWeight: 'bold',
@@ -1096,6 +1243,13 @@ const styles = StyleSheet.create({
   contacttext: {
     fontSize: 18,
     
+  },
+  SectionHeaderStyle:{
+ 
+    backgroundColor : '#8AB31E',
+    fontSize : 20,
+    padding: 5,
+    color: '#fff',
   },
 })
 
