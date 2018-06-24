@@ -1,5 +1,5 @@
 import React,  { Component }  from 'react';
-import { StyleSheet, SectionList, AsyncStorage, Text, View, Image, AppRegistry, Button, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, NetInfo, Platform } from 'react-native';
+import { StyleSheet, Linking, SectionList, AsyncStorage, Text, View, Image, AppRegistry, Button, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, NetInfo, Platform } from 'react-native';
 import { createStackNavigator } from 'react-navigation';
 import Expo from 'expo';
 import { MapView, Permissions, BarCodeScanner, SQLite, Location } from 'expo';
@@ -120,7 +120,6 @@ class EventOverview extends React.Component{
       )
     }
     let eventdata = this.state.events
-    console.log(eventdata)
     return(
       <SectionList
       renderItem={({item, index, section}) => <TouchableOpacity onPress={() =>
@@ -149,16 +148,11 @@ class RallyeOverview extends React.Component{
   };
   async componentWillMount() {
     Location.setApiKey('AIzaSyAIoKTYvCWftWH2xeV45o__y9Cj-jFIvCU');
-    //this._getLocationAsync();
-    var a = await syncAPI();
+    
     var b = readFromSQLite();
-    console.log("again")
-    //points = await b;
-    //console.log(b)
-    //this.doit()
+
     await this.doit()
-   // this.doit();
-    //this._getLocationAsync();
+
   
 }
 
@@ -174,7 +168,6 @@ async doit(){
        
         unlockPOIs = JSON.parse(unlockPOIs)
         points = []
-        console.log(unlockPOIs)
         for(var i = 0; i < unlockPOIs.length; i++){
         for(var j = 0; j < _array.length; j++){
         
@@ -187,7 +180,6 @@ async doit(){
           }
         
       }
-      console.log(points)
         
       await this._getLocationAsync()}, () => {})
     
@@ -206,39 +198,9 @@ _getLocationAsync = async () => {
     });
   }
 
-  /* this.state = ({
-    target: {
-      latitude: 37.78825,
-      longitude: -122.4324,
-    },
-    user: {
-      latitude: 37,
-      longitude: -122,
-      heading: {
-        trueHeading: 0,
-      }
-    },
-    mark: {
-      latitude: 37.78825,
-      longitude: -122.4324,
-    },
-  }) */
-
-  //let location = await Location.getCurrentPositionAsync({});
-  
-  
   
 
-  /* Location.watchHeadingAsync((lo) => {
-    usrheading = lo.trueHeading
-    });
 
-    Location.watchPositionAsync({},(lo) => {
-      usrlatitude = lo.latitude
-      usrlongitude = lo.longitude
-      }); 
-*/
-//console.log(points)
 
 
 var tmppoints = JSON.stringify(points)
@@ -247,10 +209,7 @@ var tmppoints = JSON.stringify(points)
     pois: tmppoints
   })
  
-  /*  Location.watchPositionAsync({},(lo) => {
-    console.log(JSON.stringify(lo))
-    this.setState({ lo })});  */
-  //this.setState({ location });
+
   
   
 };
@@ -319,12 +278,10 @@ class GetLoc extends React.Component{
 
   async componentWillMount() {
       Location.setApiKey('AIzaSyAIoKTYvCWftWH2xeV45o__y9Cj-jFIvCU');
-      //this._getLocationAsync();
+      
       var a = await syncAPI();
       var b = readFromSQLite();
-      //points = await b;
-      //console.log(b)
-      //this.doit()
+
       db.transaction(tx => {
         tx.executeSql(
           `select * from rallyepoints`,
@@ -334,8 +291,7 @@ class GetLoc extends React.Component{
             this.doit()}, () => {})
         
       }) 
-     // this.doit();
-      //this._getLocationAsync();
+
     
   }
 
@@ -364,25 +320,6 @@ class GetLoc extends React.Component{
       });
     }
 
-    /* this.state = ({
-      target: {
-        latitude: 37.78825,
-        longitude: -122.4324,
-      },
-      user: {
-        latitude: 37,
-        longitude: -122,
-        heading: {
-          trueHeading: 0,
-        }
-      },
-      mark: {
-        latitude: 37.78825,
-        longitude: -122.4324,
-      },
-    }) */
-
-    //let location = await Location.getCurrentPositionAsync({});
     
     
     let location = await Location.getCurrentPositionAsync({});
@@ -391,17 +328,8 @@ class GetLoc extends React.Component{
     let usrheading = await Location.getHeadingAsync();
     usrheading = usrheading.trueHeading
 
-    /* Location.watchHeadingAsync((lo) => {
-      usrheading = lo.trueHeading
-      });
 
-      Location.watchPositionAsync({},(lo) => {
-        usrlatitude = lo.latitude
-        usrlongitude = lo.longitude
-        }); 
- */
-//console.log(points)
-let firstpoint = points[0];
+
 
 
 const { navigation } = this.props;
@@ -425,10 +353,7 @@ const tarlongitude = navigation.getParam('longitude', );
       },
     })
    
-    /*  Location.watchPositionAsync({},(lo) => {
-      console.log(JSON.stringify(lo))
-      this.setState({ lo })});  */
-    //this.setState({ location });
+
     
     
   };
@@ -443,11 +368,10 @@ const tarlongitude = navigation.getParam('longitude', );
       
       let trgpos = {latitude: this.state.target.latitude, longitude: this.state.target.longitude}
       let usrpos = {latitude: this.state.user.latitude, longitude: this.state.user.longitude}
-      let direction = geolib.getRhumbLineBearing(usrpos, trgpos) //oder getBearing
+      let direction = geolib.getRhumbLineBearing(usrpos, trgpos) 
       text = getDistance(usrpos, trgpos);
       text2 = direction;
-      //console.log(text)
-      //console.log(text2)
+     
       deg = (-1 * (this.state.user.heading - direction)) + 'deg'
     }
 
@@ -491,7 +415,7 @@ const tarlongitude = navigation.getParam('longitude', );
 async function unlockNextPOI(data){
   let route = await AsyncStorage.getItem('rallyetour')
   let unlocked = await AsyncStorage.getItem('unlockedPOIs')
-  console.log("######################################################################")
+ 
   route = JSON.parse(route)
   unlocked = JSON.parse(unlocked)
 
@@ -500,7 +424,7 @@ async function unlockNextPOI(data){
   if(unlocked.length < route.length){
     var diflength = route.length - unlocked.length
     var copyposition = route.length - diflength
-    console.log(route[copyposition])
+   
     unlocked.push(route[copyposition])
     await AsyncStorage.setItem('unlockedPOIs', JSON.stringify(unlocked))
   }
@@ -518,11 +442,7 @@ class HomeScreen extends React.Component {
       <Text></Text>
     ),
     headerRight: (
-      <Button
-        onPress={() => alert('This is a button!')}
-        title="Info"
-        color={Platform.OS === 'ios' ? "#fff" : "#f4511e"}
-      />
+      <Text></Text>
     ),
   };
   render() {
@@ -636,13 +556,18 @@ class Contact extends React.Component{
 <Text style={styles.contacttext}>webmaster@karsau-750.de</Text>
 <Text style={styles.contacttext}>Tel.: +49 7623 50991</Text>
 <Text style={styles.contacttext}>Mobil: +49 1520 17 96 007</Text>
+<Text style={{paddingVertical: 15}}></Text>
+<Text style={{color: 'blue'}}
+      onPress={() => Linking.openURL('http://www.karsau-750.de/')}>
+  Zur Webseite
+</Text>
 <Text>{}</Text>
 </View>
     );
   }
 }
 
-function getMoviesFromApiAsync() {
+function getAPIasync() {
   if(isOnline){
   try{
   return fetch("https://api.re-host.eu/rallye.json", {
@@ -653,12 +578,10 @@ function getMoviesFromApiAsync() {
     }
   }).then((response) => {
   if(response.status === 200)
-  //console.log(response.json())
   return response.json()
   
 })
   .then((responseJson) => {
-    //console.log(responseJson)
     return responseJson.checkpoints;
     
 
@@ -670,8 +593,6 @@ function getMoviesFromApiAsync() {
     throw Error(response.statusText)
   })
 }catch(e){
-  alert('This is a button!')
-  console.log(e)
 }
   }else{
     return null
@@ -691,12 +612,10 @@ function getAPIversion() {
     }
   }).then((response) => {
   if(response.status === 200)
-  //console.log(response.json())
   return response.json()
   
 })
   .then((responseJson) => {
-    //console.log(responseJson)
     return responseJson.metadata;
     
 
@@ -708,7 +627,6 @@ function getAPIversion() {
     throw Error(response.statusText)
   })
 }catch(e){
-  alert('This is a button!')
   console.log(e)
 }
   }else{
@@ -728,12 +646,10 @@ function getRallyeOrder() {
     }
   }).then((response) => {
   if(response.status === 200)
-  //console.log(response.json())
   return response.json()
   
 })
   .then((responseJson) => {
-    //console.log(responseJson)
     return responseJson.tours;
     
 
@@ -745,9 +661,7 @@ function getRallyeOrder() {
     throw Error(response.statusText)
   })
 }catch(e){
-  alert('This is a button!')
-  console.log(e)
-}
+  }
   }else{
     return null
   }
@@ -764,12 +678,10 @@ function getEvents() {
     }
   }).then((response) => {
   if(response.status === 200)
-  //console.log(response.json())
   return response.json()
   
 })
   .then((responseJson) => {
-    console.log(responseJson.locations)
     return responseJson.locations;
     
 
@@ -781,8 +693,6 @@ function getEvents() {
     throw Error(response.statusText)
   })
 }catch(e){
-  alert('This is a button!')
-  console.log(e)
 }
   }else{
     return null
@@ -794,34 +704,12 @@ class Server extends React.Component{
     super(props);
     this.state ={ isLoading: true}
   }
-  /* componentDidMount(){
-  return fetch("https://api.re-host.eu/api/testapi/all", {
-    method: 'GET',
-    headers: {
-      'X-Api-Key': '05DA927B0DAFD5FF7FDC31EB2A20FBAF'
-    },
-   
-}).then((response) => response.json())
-  .then((responseJson) => {
-
-    this.setState({
-      isLoading: false,
-      dataSource: getMoviesFromApiAsync(),
-      //dataSource: responseJson.data.testapi,
-    }, function(){
-
-    });
-
-  })
-  .catch((error) =>{
-    console.error(error);
-  }); */
+  
   componentDidMount(){
-    var a = getMoviesFromApiAsync()
+    var a = getAPIasync()
     return b = a.then((result) => {this.setState({
         isLoading: false,
         dataSource: result,
-        //dataSource: responseJson.data.testapi,
       }, function(){
   
       })
@@ -847,7 +735,7 @@ return(
   <View style={styles.container}>
     <FlatList
       data={this.state.dataSource}
-      renderItem={({item}) => <TouchableOpacity onPress={() => getMoviesFromApiAsync()}><Text style={styles.item}>{item.id}, {item.text1}</Text></TouchableOpacity>}
+      renderItem={({item}) => <TouchableOpacity onPress={() => getAPIasync()}><Text style={styles.item}>{item.id}, {item.text1}</Text></TouchableOpacity>}
       keyExtractor={(item, index) =>  index.toString()}
     />
   </View>
@@ -894,11 +782,7 @@ async function syncAPI() {
       'create table if not exists rallyepoints (id integer primary key not null, title text, latitude text, longitude text, shorttext text, longtext text, thumbnail text, uri text);'
     );
   }, null, null);
-  /* db.transaction(tx => {
-    tx.executeSql(
-      'drop table itemas;'
-    );
-  }, null, null); */
+  
   if(isOnline){
   let nrversion = 0
   let tmp = getAPIversion();
@@ -912,7 +796,6 @@ async function syncAPI() {
   let rversion = 0
   try {
     rversion = await AsyncStorage.getItem('rallyeversion')
-    console.log(rversion + ' //////////// ' + nrversion)
   } catch (error) {
     
   }
@@ -953,7 +836,7 @@ async function syncAPI() {
 
 
 
-  var a = getMoviesFromApiAsync()
+  var a = getAPIasync()
 
   if(a != null && isOnline){
 
@@ -1097,48 +980,7 @@ class MapScreen extends React.Component{
   }
 }
     
-class DetailsScreen extends React.Component {
-  static navigationOptions = ({ navigation }) => {
-    const { params } = navigation.state;
-    
-    return {
-      title: params ? params.otherParam : 'A Nested Details Screen',
-    }
-  };
-  render() {
-    /* 2. Get the param, provide a fallback value if not available */
-    const { navigation } = this.props;
-    const itemId = navigation.getParam('itemId', 'NO-ID');
-    const otherParam = navigation.getParam('otherParam', 'some default value');
 
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text>Details Screen</Text>
-        <Text>itemId: {JSON.stringify(itemId)}</Text>
-        <Text>otherParam: {JSON.stringify(otherParam)}</Text>
-        <Button
-    title="Update the title"
-    onPress={() => this.props.navigation.setParams({otherParam: 'Updated!'})}
-  />
-        <Button
-          title="Go to Details... again"
-          onPress={() =>
-            this.props.navigation.push('Details', {
-              itemId: Math.floor(Math.random() * 100),
-            })}
-        />
-        <Button
-          title="Go to Home"
-          onPress={() => this.props.navigation.navigate('Home')}
-        />
-        <Button
-          title="Go back"
-          onPress={() => this.props.navigation.goBack()}
-        />
-      </View>
-    );
-  }
-}
 
 class StaticTextScreen extends React.Component {
   static navigationOptions = ({ navigation }) => {
@@ -1203,7 +1045,6 @@ class StaticTextScreen extends React.Component {
 const RootStack = createStackNavigator(
   {
     Home: HomeScreen,
-    Details: DetailsScreen,
     Static: StaticTextScreen,
     RallyeOverview: RallyeOverview,
     Navigation: GetLoc,
@@ -1231,7 +1072,7 @@ const styles = StyleSheet.create({
    paddingTop: 0
   },
   item: {
-    padding: 10,
+    padding: Platform.OS === 'ios' ? 10 : 5,
     fontSize: 18,
     height: 44,
   },
@@ -1254,10 +1095,11 @@ const styles = StyleSheet.create({
 })
 
 export default class App extends React.Component {
-  componentDidMount() {
+  async componentDidMount() {
 
     
     NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
+    await syncAPI();
     //syncAPI();
     
     /* db.transaction(tx => {
